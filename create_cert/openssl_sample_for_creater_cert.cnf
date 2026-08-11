@@ -22,7 +22,7 @@ default_crl_days  = 30 # CRLの有効期限　切れると利用者側でエラ�
 policy            = policy_loose # 署名ポリシーのセクションを指定
 unique_subject    = no # 同内容のsubjectの発行を制限するか
 
-x509_extensions = v3_sig # v3署名用のセクションを指定
+# x509_extensions = v3_sig # v3署名用のセクションを指定 パラメータで指定するのでここでは指定しない
 
 name_opt        = ca_default # DN(識別名)の表示形式 ca_defaultは内部で定義済みの名前です　
 cert_opt        = ca_default # 証明書の表表示形式
