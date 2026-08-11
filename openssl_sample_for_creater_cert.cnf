@@ -1,0 +1,52 @@
+# openssl_ca_sample.cnf 
+
+[ ca ]
+default_ca = CA_default
+
+[ CA_default ]
+dir               = [CAディレクトリ]
+#certs            = $dir/certs # 発行した証明書の保存場所 自動保存されるわけではないので、不要
+#crl_dir          = $dir/crl # 発行したcrlの保存場所　自動保存されるわけではないので、不要
+new_certs_dir     = $dir/newcerts # 新規の証明書が保存される場所　自動保存　中身は消さずに保存
+database          = $dir/index.txt　# 証明書の管理データベース
+serial            = $dir/serial # 証明書管理番号が保存される
+crlnumber         = $dir/crlnumber # 失効リストの管理番号が保存される
+
+certificate       = $dir/ca.crt #CA証明書へのパス
+private_key       = $dir/ca.key #CA秘密鍵へのパス
+
+default_md        = sha256
+default_days      = 825
+default_crl_days  = 30 # CRLの有効期限　切れると利用者側でエラーになる事があるので注意
+
+policy            = policy_loose # 署名ポリシーのセクションを指定
+unique_subject    = no # 同内容のsubjectの発行を制限するか
+
+x509_extensions = v3_sig # v3署名用のセクションを指定
+
+name_opt        = ca_default # DN(識別名)の表示形式 ca_defaultは内部で定義済みの名前です　
+cert_opt        = ca_default # 証明書の表表示形式
+
+
+[ policy_loose ]
+countryName             = optional
+stateOrProvinceName     = optional
+localityName            = optional
+organizationName        = optional
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+
+# ============================================================
+# v3拡張署名用セクション
+# ============================================================
+
+[ v3_sig ]
+
+basicConstraints = critical, CA:false
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer
+
+keyUsage = critical, digitalSignature
+extendedKeyUsage = clientAuth
