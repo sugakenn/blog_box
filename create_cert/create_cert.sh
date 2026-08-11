@@ -106,13 +106,12 @@ openssl genpkey \
 chmod 600 "$KEY"
 
 # ----------------------------------------
-# 2. CSR作成
+# 2. CSR作成　ここはデフォルトのopenssl.cnfを使う
 # ----------------------------------------
 echo "=== Create CSR ==="
 
 openssl req \
     -new \
-    -config "$CONFIG" \
     -key "$KEY" \
     -out "$CSR" \
     -subj "/CN=${COMMON_NAME}" \
