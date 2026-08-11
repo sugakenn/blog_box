@@ -42,11 +42,16 @@ emailAddress            = optional
 # v3拡張署名用セクション
 # ============================================================
 
-[ v3_sig ]
-
+[v3_server]
 basicConstraints = critical, CA:false
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid,issuer
 
+[v3_client]
+basicConstraints = critical, CA:false
 keyUsage = critical, digitalSignature
 extendedKeyUsage = clientAuth
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer
