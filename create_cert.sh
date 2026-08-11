@@ -4,58 +4,60 @@
 # Certificate Creation Script
 # ============================================================
 #
-# OpenSSLを使用してサーバーやクライアント証明書を作成します。
-#
-# 以下の処理を順番に実行します。
-#   1. RSA 3072bit 秘密鍵の作成
-#   2. CSR（証明書署名要求）の作成
-#   3. openssl.cnf の [v3_sig] を使用してCA署名
-#   4. 秘密鍵と証明書をPKCS#12（PFX）形式にまとめる
-#
-# Common Name（CN）と Subject Alternative Name（SAN）には
-# 同じDNS名を設定します。
+# OpenSSLを使用してサーバー証明書またはクライアント証明書を作成します。
 #
 # Usage:
-#   ./create-server-cert.sh <openssl.cnf> <CommonName> [CA_CERT]
+#   ./create-cert.sh <server|client> <openssl.cnf> <CommonName> [CA_CERT]
 #
 # Arguments:
-#   openssl.cnf   CA設定ファイル
-#   CommonName    Common Name（SANにも同じ値を設定）FQDN形式
-#   CA_CERT       PFXに含めるCA証明書（省略可）
+#   server|client  証明書の種類
+#                  server -> openssl.cnf の [v3_server] を使用
+#                  client -> openssl.cnf の [v3_client] を使用
+#   openssl.cnf    CA設定ファイル
+#   CommonName     Common Name（FQDN形式）
+#   CA_CERT        PFXに含めるCA証明書またはCAチェーン（省略可）
 #
 # Example:
-#   ./create-cert.sh /etc/ssl/ca/openssl.cnf server.example.com
+#   ./create-cert.sh server /etc/ssl/ca/openssl.cnf server.example.com
 #
-#   CA証明書もPFXに含める場合:
-#   ./create-cert.sh /etc/ssl/ca/openssl.cnf server.example.com ca-chain.crt
+#   ./create-cert.sh client /etc/ssl/ca/openssl.cnf client.example.com ca-chain.crt
 #
 # Output:
-#   <CommonName>.key   秘密鍵
-#   <CommonName>.crt   証明書
-#   <CommonName>.pfx   PKCS#12ファイル
-#
-# 出力先:
-#   openssl.cnf と同じディレクトリ
-#
-# Requirements:
-#   openssl.cnf に [v3_sig] セクションが定義されていること
+#   <CommonName>.key
+#   <CommonName>.crt
+#   <CommonName>.pfx
 #
 # ============================================================
 
-#!/bin/bash
 set -e
 
 # ----------------------------------------
 # 引数チェック
 # ----------------------------------------
-if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
-    echo "Usage: $0 <openssl.cnf> <CommonName> [CA_CERT]"
+if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
+    echo "Usage: $0 <server|client> <openssl.cnf> <CommonName> [CA_CERT]"
     exit 1
 fi
 
-CONFIG="$1"
-COMMON_NAME="$2"
-CA_CERT="${3:-}"
+CERT_TYPE="$1"
+CONFIG="$2"
+COMMON_NAME="$3"
+CA_CERT="${4:-}"
+
+# ----------------------------------------
+# 証明書タイプのチェック
+# ----------------------------------------
+case "$CERT_TYPE" in
+    server|client)
+        ;;
+    *)
+        echo "Error: certificate type must be 'server' or 'client'."
+        exit 1
+        ;;
+esac
+
+# 使用するv3セクション
+V3_SECTION="v3_${CERT_TYPE}"
 
 # ----------------------------------------
 # openssl.cnf の存在確認
@@ -65,18 +67,16 @@ if [ ! -f "$CONFIG" ]; then
     exit 1
 fi
 
-# CONFIGを絶対パスにする
 CONFIG="$(realpath "$CONFIG")"
 
-# openssl.cnf と同じディレクトリ
 BASE_DIR="$(dirname "$CONFIG")"
 
 # ----------------------------------------
-# Root CA が指定された場合のチェック
+# CA証明書が指定された場合のチェック
 # ----------------------------------------
 if [ -n "$CA_CERT" ]; then
     if [ ! -f "$CA_CERT" ]; then
-        echo "Error: Root CA certificate not found: $CA_CERT"
+        echo "Error: CA certificate not found: $CA_CERT"
         exit 1
     fi
 
@@ -105,7 +105,6 @@ chmod 600 "$KEY"
 
 # ----------------------------------------
 # 2. CSR作成
-# CN と SAN は同じ値
 # ----------------------------------------
 echo "=== Create CSR ==="
 
@@ -119,19 +118,19 @@ openssl req \
 
 # ----------------------------------------
 # 3. CA署名
-# openssl.cnf の [v3_sig] を使用
+# server -> [v3_server]
+# client -> [v3_client]
 # ----------------------------------------
-echo "=== Sign certificate ==="
+echo "=== Sign certificate (${V3_SECTION}) ==="
 
 openssl ca \
     -config "$CONFIG" \
-    -extensions v3_sig \
+    -extensions "$V3_SECTION" \
     -in "$CSR" \
     -out "$CRT"
 
 # ----------------------------------------
 # 4. PFX作成
-# CA_CERT指定時はPFXへ含める
 # ----------------------------------------
 echo "=== Create PFX ==="
 
@@ -161,6 +160,8 @@ rm -f "$CSR"
 
 echo
 echo "Completed."
+echo "Type        : $CERT_TYPE"
+echo "V3 section  : $V3_SECTION"
 echo "Private key : $KEY"
 echo "Certificate : $CRT"
 echo "PFX         : $PFX"
