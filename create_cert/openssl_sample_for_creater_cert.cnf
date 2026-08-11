@@ -27,6 +27,10 @@ x509_extensions = v3_sig # v3署名用のセクションを指定
 name_opt        = ca_default # DN(識別名)の表示形式 ca_defaultは内部で定義済みの名前です　
 cert_opt        = ca_default # 証明書の表表示形式
 
+# 通常のCAなら設定しない、none
+# copy CA側の拡張設定があるものに関しては上書き
+# copyall すべて署名要求の通りにコピー(運用注意)
+copy_extensions = copy
 
 [ policy_loose ]
 countryName             = optional
