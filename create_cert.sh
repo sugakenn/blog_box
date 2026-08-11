@@ -1,10 +1,10 @@
 #!/bin/bash
 #
 # ============================================================
-# Server Certificate Creation Script
+# Certificate Creation Script
 # ============================================================
 #
-# OpenSSLを使用してサーバー証明書を作成します。
+# OpenSSLを使用してサーバーやクライアント証明書を作成します。
 #
 # 以下の処理を順番に実行します。
 #   1. RSA 3072bit 秘密鍵の作成
@@ -20,18 +20,18 @@
 #
 # Arguments:
 #   openssl.cnf   CA設定ファイル
-#   CommonName    サーバーのCommon Name（SANにも同じ値を設定）
+#   CommonName    Common Name（SANにも同じ値を設定）FQDN形式
 #   CA_CERT       PFXに含めるCA証明書（省略可）
 #
 # Example:
-#   ./create-server-cert.sh /etc/ssl/ca/openssl.cnf server.example.com
+#   ./create-cert.sh /etc/ssl/ca/openssl.cnf server.example.com
 #
 #   CA証明書もPFXに含める場合:
-#   ./create-server-cert.sh /etc/ssl/ca/openssl.cnf server.example.com ca-chain.crt
+#   ./create-cert.sh /etc/ssl/ca/openssl.cnf server.example.com ca-chain.crt
 #
 # Output:
 #   <CommonName>.key   秘密鍵
-#   <CommonName>.crt   サーバー証明書
+#   <CommonName>.crt   証明書
 #   <CommonName>.pfx   PKCS#12ファイル
 #
 # 出力先:
