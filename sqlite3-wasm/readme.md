@@ -472,10 +472,6 @@ SQLite3 WASM / OPFS
 
 ## License
 
-このリポジトリ独自のコードに適用するライセンスをここに記載してください。
-
-例:
-
 ```text
 MIT License
 ```
