@@ -13,6 +13,12 @@
  
 declare(strict_types=1);
 
+// タイムゾーン
+date_default_timezone_set('Asia/Tokyo');
+
+// ロケール
+setlocale(LC_ALL, 'ja_JP.UTF-8');
+
 const API_KEY  = 'YOUR_SECRET_API_KEY';
 const DATA_DIR = __DIR__ . '/data';
 const LOG_FILE  = '/var/log/apache2/wg-beacon.log';
