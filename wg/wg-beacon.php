@@ -24,6 +24,9 @@ const DATA_DIR = __DIR__ . '/data';
 const LOG_FILE  = '/var/log/apache2/wg-beacon.log';
 const SAVE_FILE = DATA_DIR . '/wg-beacon.json';
 
+const ROOT_PUB_KEY=""
+const ROOT_PORT=""
+
 //endpointは可変
 //portに対してポートフォワードを設定しておくこと
 //active は "active"の場合のみセットする
@@ -286,7 +289,7 @@ function showBeacon(): void
     echo '<html lang="ja">';
     echo '<head>';
     echo '<meta charset="UTF-8">';
-    echo '<title>端末リスト</title>';
+    echo '<title>WG端末リスト</title>';
 
     //ヒアドキュメント開始
     echo <<<HTML
@@ -318,7 +321,8 @@ HTML;
     echo '</head>';
     echo '<body>';
 
-    echo '<h1>端末リスト</h1>';
+    echo '<h1>WG端末リスト</h1>';
+    echo '<p>中央SV PUBKEY'.ROOT_PUBKEY.' PORT:'.ROOT_POOT.'</p>';
 
     echo '<table>';
     echo '<thead>';
