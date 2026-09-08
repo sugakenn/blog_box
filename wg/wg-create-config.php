@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 define('WG_PRIVATE_KEY', 'YOUR_WG_PRIVATE_KEY');
+define('LISTEN_PORT','51820');
 define('JSON_FILE', '/var/www/html/data/wg-beacon.json');
 
 function makeWgConfig(?string $strSavePath =null): bool
@@ -28,6 +29,7 @@ function makeWgConfig(?string $strSavePath =null): bool
 
     $config = "[Interface]\n";
     $config .= "PrivateKey = " . WG_PRIVATE_KEY . "\n";
+    $config .= "ListenPort = " . LISTEN_PORT . "\n";
     $config .= "Address = 172.30.255.1/24\n";
 
     // Peer設定
