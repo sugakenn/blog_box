@@ -87,9 +87,11 @@ function makeWgConfig(?string $strSavePath =null): bool
         }
     }
 
+    $oldUmask = umask(0077);
     if (file_put_contents($strSavePath, $config, LOCK_EX) === false) {
         return false;
     }
+    umask($oldUmask);
 
     return true;
 }
