@@ -7,6 +7,12 @@
  */
 declare(strict_types=1);
 
+// タイムゾーン
+date_default_timezone_set('Asia/Tokyo');
+
+// ロケール
+setlocale(LC_ALL, 'ja_JP.UTF-8');
+
 define('WG_PRIVATE_KEY', 'YOUR_WG_PRIVATE_KEY');
 define('LISTEN_PORT','51820');
 define('JSON_FILE', '/var/www/html/data/wg-beacon.json');
