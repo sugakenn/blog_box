@@ -25,6 +25,7 @@ const LOG_FILE  = '/var/log/apache2/wg-beacon.log';
 const SAVE_FILE = DATA_DIR . '/wg-beacon.json';
 
 const ROOT_PUB_KEY="YOUR_WG_ROOT_SV_PUBKEY";
+const ROOT_IP="172.30.255.1";
 const ROOT_PORT="51820";
 
 //endpointは可変
@@ -322,11 +323,13 @@ HTML;
     echo '<body>';
 
     echo '<h1>WG端末リスト</h1>';
-    echo '<p>中央SV PUBKEY: '
+    echo '<p>中央SV PUBKEY: <strong>'
     . htmlspecialchars(ROOT_PUB_KEY, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-    . ' PORT: '
+    . '</strong> IP: <strong>' 
+    . htmlspecialchars(ROOT_IP, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+    . '</strong> PORT: <strong>' 
     . htmlspecialchars(ROOT_PORT, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-    . '</p>';
+    . '</strong></p>';
 
     echo '<table>';
     echo '<thead>';
