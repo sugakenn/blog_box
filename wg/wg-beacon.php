@@ -322,7 +322,11 @@ HTML;
     echo '<body>';
 
     echo '<h1>WG端末リスト</h1>';
-    echo '<p>中央SV PUBKEY'.ROOT_PUBKEY.' PORT:'.ROOT_POOT.'</p>';
+    echo '<p>中央SV PUBKEY: '
+    . htmlspecialchars(ROOT_PUB_KEY, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+    . ' PORT: '
+    . htmlspecialchars(ROOT_PORT, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+    . '</p>';
 
     echo '<table>';
     echo '<thead>';
