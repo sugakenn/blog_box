@@ -105,9 +105,11 @@ function makeWgConfig(): bool
         }
     }
 
+    $oldUmask = umask(0077);
     if (file_put_contents(WG_CONFIG_PATH, $config, LOCK_EX) === false) {
         return false;
     }
+    umask($oldUmask);
 
     return true;
 }
