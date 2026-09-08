@@ -49,8 +49,41 @@ function makeWgConfig(?string $strSavePath =null): bool
         $config .= "PublicKey = " . $item['pubkey'] . "\n";
         $config .= "AllowedIPs = " . $item['tunnel_ip'] . "\n";
 
-        if (isset($item['endpoint']) && isset($item['port'])) {
-            $config .= "Endpoint = " . $item['endpoint'] . ":" . $item['port'] . "\n";
+        $endpoint = $item['endpoint'] ?? '';
+        $port = $item['port'] ?? null;
+        
+        $validIp = filter_var(
+            $endpoint,
+            FILTER_VALIDATE_IP
+        ) !== false;
+        
+        $validPort = filter_var(
+            $port,
+            FILTER_VALIDATE_INT,
+            [
+                'options' => [
+                    'min_range' => 1,
+                    'max_range' => 65535
+                ]
+            ]
+        ) !== false;
+        
+        if ($validIp && $validPort) {
+        
+            // IPv6の場合は [] で囲む
+            if (filter_var(
+                $endpoint,
+                FILTER_VALIDATE_IP,
+                FILTER_FLAG_IPV6
+            ) !== false) {
+                $endpoint = '[' . $endpoint . ']';
+            }
+        
+            $config .= "Endpoint = "
+                . $endpoint
+                . ":"
+                . $port
+                . "\n";
         }
     }
 
