@@ -6,7 +6,6 @@
  * 
  * 主にバックアップ用
  * beaconでIPを収集して、非常時はポートフォワードで接続する
- * idを引数に渡して、wgの起動をさせる
  * 
  */
 declare(strict_types=1);
@@ -17,7 +16,7 @@ define('LISTEN_PORT', '51820');
 define('JSON_FILE', '/var/www/html/data/wg-beacon.json');
 define('WG_CONFIG_PATH', '/etc/wireguard/wg0.conf');
 
-function makeWgConfig(?string $strId=null): bool
+function makeWgConfig(): bool
 {
     if (file_exists(WG_CONFIG_PATH)) {
         //既存のコンフィグをバックアップ
@@ -53,17 +52,10 @@ function makeWgConfig(?string $strId=null): bool
             continue;
         }
 
-        //ユーザー指定
-        if ($strId === null) {
-            //nullの時はactiveなユーザーのみを対象にする
-            if (!isset($item['active']) || $item['active'] !== 'active') {
-                continue;
-            }
-        } else{
-            if ($user !== $strId) {
-                continue;
-            }
-        }
+        //activeなユーザーのみを対象にする
+        if (!isset($item['active']) || $item['active'] !== 'active') {
+            continue;
+        }    
 
         $config .= "\n[Peer]\n";
         $config .="# User: " . $user . ":" . $item['name'] . "\n";
@@ -112,8 +104,7 @@ function wireGuardSync(): void
 }
 
 //ENTRY POINT
-$strId = $argv[1] ?? null;
-if (!makeWgConfig($strId)) {
+if (!makeWgConfig()) {
     echo "Failed to create WireGuard config file.\n";
     exit(1);
 }
