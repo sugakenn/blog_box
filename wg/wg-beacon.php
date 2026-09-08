@@ -24,8 +24,8 @@ const DATA_DIR = __DIR__ . '/data';
 const LOG_FILE  = '/var/log/apache2/wg-beacon.log';
 const SAVE_FILE = DATA_DIR . '/wg-beacon.json';
 
-const ROOT_PUB_KEY=""
-const ROOT_PORT=""
+const ROOT_PUB_KEY="YOUR_WG_ROOT_SV_PUBKEY";
+const ROOT_PORT="YOUR_WG_ROOT_SV_WAIT_PORT";
 
 //endpointは可変
 //portに対してポートフォワードを設定しておくこと
