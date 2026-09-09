@@ -29,10 +29,10 @@ NET="wg0"
 ENDPOINT="endpoint.jp:51820"
 
 # ログファイル
-LOG_FILE="/var/log/wg-update.log"
+LOG_FILE="/var/log/wg-beacon.log"
 
 # 中央サーバーのWireGuardトンネルIP
-PING_IP="172.30.255.1"
+PING_IP="192.168.255.1"
 
 # -------------------------------------------------------
 
