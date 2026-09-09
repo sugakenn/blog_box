@@ -1,295 +1,277 @@
 # WireGuard Beacon
 
-WireGuard の Peer が使用しているグローバル IP アドレスを HTTPS 経由で中央サーバーへ通知し、その情報から WireGuard の設定ファイルを生成するための簡易 Beacon システムです。
+WireGuard の中央サーバーと複数の端末を管理するための小規模なツール群です。
 
-主に、各拠点のグローバル IP アドレスが固定されていない環境での利用を想定しています。
+中央サーバー側では、PHP の管理画面から WireGuard Peer の情報を JSON ファイルで管理し、その情報から WireGuard の設定ファイルを生成します。
 
-## 概要
-
-スター型の WireGuard 構成で、各拠点から Beacon サーバーへ定期的に HTTPS POST を行います。
-
-Beacon サーバーは HTTP 接続元の IP アドレスを取得し、その端末の WireGuard Endpoint として JSON ファイルへ保存します。
-
-```text
-             拠点A
-          WireGuard Peer
-               |
-               | HTTPS POST
-               v
-        +----------------+
-        | Beacon Server  |
-        | wg-beacon.php  |
-        +----------------+
-               |
-               | wg-beacon.json
-               v
-     +----------------------+
-     | wg-create-config.php |
-     +----------------------+
-               |
-               | WireGuard config
-               v
-        中央 WireGuard
-```
-
-WireGuard 用 UDP ポートについては、各拠点のルーターで WireGuard 端末へのポートフォワードを設定しておくことを前提としています。
+Windows クライアント側では、タスクスケジューラから定期的に WireGuard Peer の Endpoint を再設定することで、DNS 名に対応する IP アドレスが変更された場合にも追従できるようにします。
 
 ## ファイル構成
 
-### `wg-beacon.php`
+```text
+wg-terms.php
+wg-create-config.php
+wg-beacon.ps1
+```
 
-Beacon サーバー本体です。
+### wg-terms.php
 
-各クライアントから送信された Beacon を受信し、接続元 IP アドレスを WireGuard の Endpoint として保存します。
+中央 WireGuard サーバーの Peer 情報を管理する Web ページです。
+ここで端末名などを公開鍵と結び付けてデータを保存しておき、wiregurdの設定ファイルは、wg-create-config.php経由で作成します。
 
-以下の処理をサポートしています。
+設定ファイル上に存在しない既存のWireGurdのエントリーは無名で読み込むようになっています。
 
-| type     | 内容                            |
-| -------- | ----------------------------- |
-| `set`    | Beacon を登録し、Endpoint と更新日時を更新 |
-| `show`   | 登録されている端末を HTML で一覧表示         |
-| `csv`    | 登録情報を CSV 形式で出力               |
-| `sample` | JSON 設定ファイルのサンプルを生成           |
+主な機能:
 
-データは以下の形式で管理します。
+* Peer の新規登録
+* Peer 情報の編集
+* Peer の削除
+* Peer 一覧表示
+* CSV 出力
+* JSON ファイルへの保存
+* `wg show wg0 dump` による実際の Peer 情報の取得
+* 最新 handshake 時刻の記録
+* WireGuard に存在し JSON に存在しない Peer の検出・登録
+
+Peer 情報は次のような JSON データとして保存されます。
 
 ```json
 {
-    "sample_user": {
-        "name": "Sample User",
-        "pubkey": "YOUR_PUBLIC_KEY",
-        "endpoint": "example.com",
-        "port": 51820,
-        "updated_at": "2026-09-08 12:00:00",
-        "tunnel_ip": "172.30.255.2/32",
-        "active": "active"
+    "PUBLIC_KEY": {
+        "name": "terminal01",
+        "pubkey": "PUBLIC_KEY",
+        "endpoint": "192.0.2.10",
+        "port": "51820",
+        "tunnel_ip": "192.168.255.2/32",
+        "active": "active",
+        "inserted_at": "2026-09-09 12:00:00",
+        "last_connected_at": "2026-09-09 12:30:00"
     }
 }
 ```
 
-主な項目は以下のとおりです。
+`last_connected_at` は WireGuard の latest handshake を取得して更新します。
 
-| 項目           | 内容                    |
-| ------------ | --------------------- |
-| `name`       | 端末・拠点名                |
-| `pubkey`     | WireGuard 公開鍵         |
-| `endpoint`   | 現在のグローバル IP アドレス      |
-| `port`       | WireGuard の待受 UDP ポート |
-| `updated_at` | 最終 Beacon 受信日時        |
-| `tunnel_ip`  | WireGuard トンネル内 IP    |
-| `active`     | Peer を使用するかどうかを示す値    |
+### wg-create-config.php
 
-`set` 処理では `endpoint` と `updated_at` のみを更新します。
+`wg-terms.php` が管理する JSON ファイルから WireGuard の設定ファイルを生成します。
 
-### `wg-beacon-client.ps1`
-
-Windows 用 Beacon クライアントです。
-
-PowerShell から `curl.exe` を使用して Beacon サーバーへ HTTPS POST を行います。
-
-環境に合わせて以下を変更してください。
-
-```powershell
-$term_id = "user"
-$postUrl = "https://example.com/api/ip"
-$type    = "set"
-$apikey  = "YOUR_SECRET_API_KEY"
-```
-
-Windows タスクスケジューラなどから定期的に実行することを想定しています。
-
-### `wg-beacon-client.sh`
-
-Linux 用 Beacon クライアントです。
-
-`curl` を使用して Beacon サーバーへ HTTPS POST を行います。
-
-環境に合わせて以下を変更してください。
-
-```bash
-term_id="user"
-post_url="https://example.com/api/ip"
-type="set"
-apikey="YOUR_SECRET_API_KEY"
-```
-
-実行権限を設定します。
-
-```bash
-chmod 700 wg-beacon-client.sh
-```
-
-cron や systemd timer などから定期的に実行できます。
-
-### `wg-create-config.php`
-
-`wg-beacon.json` を読み込み、中央サーバー用の WireGuard 設定ファイルを生成します。
-
-初期設定では中央 WireGuard インターフェースに以下を使用します。
+生成される設定の例:
 
 ```ini
 [Interface]
-PrivateKey = YOUR_WG_PRIVATE_KEY
-Address = 172.30.255.1/24
+PrivateKey = ...
+ListenPort = 51820
+Address = 192.168.255.1/24
+
+[Peer]
+PublicKey = ...
+AllowedIPs = 192.168.255.2/32
 ```
 
-JSON に登録された端末から Peer 設定を生成します。
+Peer に Endpoint と Port が設定されている場合は、Endpoint も出力します。
+
+IPv6 Endpoint の場合は、
 
 ```ini
-[Peer]
-# User: user01:拠点01
-PublicKey = ...
-AllowedIPs = 172.30.255.2/32
-Endpoint = 203.0.113.10:51820
+Endpoint = [2001:db8::1]:51820
 ```
 
-秘密鍵と JSON ファイルの場所を環境に合わせて変更してください。
+の形式で出力します。
 
-```php
-define('WG_PRIVATE_KEY', 'YOUR_WG_PRIVATE_KEY');
-define('JSON_FILE', '/var/www/html/data/wg-beacon.json');
+このプログラムは WireGuard の PrivateKey を扱うため、Web から直接実行・閲覧できる場所には配置しないでください。
+
+## wg-beacon.ps1
+
+Windows の WireGuard クライアント側で定期実行する PowerShell スクリプトです。
+
+WireGuard の Peer Endpoint を定期的に再設定します。
+
+```powershell
+wg.exe set wg0 peer <PUBLIC_KEY> endpoint example.jp:51820
 ```
 
-設定ファイルを生成するには、
+これにより、Endpoint にホスト名を使用している場合、DNS の参照結果が変化しても定期的に新しい IP アドレスへ更新できます。
 
-```bash
-php wg-create-config.php
-```
+Endpoint 更新後、中央サーバーの WireGuard アドレスへ ping を実行して結果をログへ保存します。
 
-を実行します。
-
-出力先を指定する場合は、
-
-```bash
-php wg-create-config.php /etc/wireguard/wg0.conf
-```
-
-のように指定します。
-
-出力先を省略した場合は、日時を付けた設定ファイル名が使用されます。
-
-## Beacon サーバーの設定
-
-`wg-beacon.php` の API キーを変更します。
-
-```php
-const API_KEY = 'YOUR_SECRET_API_KEY';
-```
-
-必要に応じてログファイルの場所も変更します。
-
-```php
-const LOG_FILE = '/var/log/apache2/wg-beacon.log';
-```
-
-Web サーバーの実行ユーザーが必要なファイルへ書き込めるよう、適切なパーミッションを設定してください。
-
-## データディレクトリ
-
-Beacon サーバーは `data` ディレクトリを使用します。
+## 想定構成
 
 ```text
-data/
-├── .htaccess
-└── wg-beacon.json
+                    Internet
+                       │
+                       │
+              ┌────────▼────────┐
+              │ WireGuard Server│
+              │      wg0        │
+              │ 192.168.255.1/24 │
+              └────────┬────────┘
+                       │
+              wg-terms.php
+                       │
+                wg-term.json
+                       │
+             wg-create-config.php
+                       │
+                  wg0.conf
+
+
+        Windows Client
+              │
+        WireGuard wg0
+              │
+        wg-beacon.ps1
+              │
+       定期的にEndpoint更新
 ```
 
-ディレクトリが存在しない場合は自動的に作成されます。
+## 中央サーバー側
 
-`.htaccess` には、
+### 必要環境
+
+* Linux
+* WireGuard / wireguard-tools
+* PHP 8 以降
+* Apache 等の Web サーバー
+* HTTPS
+
+### wg-terms.php
+
+`wg-terms.php` を Web サーバー(要SSL)へ配置します。
+
+データは、
+
+```text
+data/wg-term.json
+```
+
+に保存されます。
+
+`data` ディレクトリが存在しない場合は自動作成されます。
+
+Apache から JSON ファイルを直接取得されないよう、`data/.htaccess` には次の設定が自動生成されます。
 
 ```apache
 Require all denied
 ```
 
-が設定され、Web 経由で JSON ファイルを直接取得できないようにします。
+### HTTPS
 
-Apache 側で `.htaccess` が有効になっている必要があります。
+Peer の登録・編集・削除では Double Submit Cookie による CSRF 対策を使用しています。
 
-可能であれば、JSON データを DocumentRoot 外へ配置する構成を推奨します。
+Cookie に `Secure` 属性を使用するため、HTTPS でアクセスしてください。
 
-## WireGuard の構成例
+## wg コマンドの実行権限
 
-中央サーバー:
+`wg-terms.php` は Peer の状態を取得するため、
+
+```bash
+wg show wg0 dump
+```
+
+を実行します。
+
+Web サーバーを `www-data` で動作させている場合は、必要なコマンドだけを sudo で許可します。
+
+`visudo` を使用して設定します。
+
+```bash
+sudo visudo -f /etc/sudoers.d/wg-term
+```
+
+例:
 
 ```text
-172.30.255.1
+www-data ALL=(root) NOPASSWD: /usr/bin/wg show wg0 dump
 ```
 
-各 Peer:
+動作確認:
+
+```bash
+sudo -u www-data sudo /usr/bin/wg show wg0 dump
+```
+
+`www-data` に WireGuard 全般の管理権限を与えるのではなく、必要なコマンドだけを許可してください。
+
+## WireGuard 設定ファイルの生成
+
+`wg-create-config.php` の次の値を環境に合わせて変更します。
+
+```php
+define('WG_PRIVATE_KEY', 'YOUR_WG_PRIVATE_KEY');
+define('LISTEN_PORT', '51820');
+define('JSON_FILE', '/var/www/html/data/wg-term.json');
+```
+
+実行例:
+
+```bash
+php wg-create-config.php
+```
+
+**このファイルに直接プライベートキーを書き込みますので、管理者権限のあるユーザー以外は参照もできないようにしてください。**
+
+出力先を指定する場合:
+
+```bash
+php wg-create-config.php /etc/wireguard/wg0.conf
+```
+
+PrivateKey を含む設定ファイルを生成するため、root または適切に制限されたユーザーから実行してください。
+
+## Windows クライアント
+
+`wg-beacon.ps1` の設定部分を環境に合わせて変更します。
+
+```powershell
+$wg = "C:\Program Files\WireGuard\wg.exe"
+$pubkey = "中央サーバーPeerのPUBLIC_KEY"
+$net = "wg0"
+$endpoint = "example.jp:51820"
+$logFile = "C:\ProgramData\WGBeacon\wg-beacon.log"
+$pingIp = "192.168.255.1"
+```
+
+### タスクスケジューラ
+
+Windows タスクスケジューラから定期実行します。
+
+設定例:
+
+* 実行ユーザー: `SYSTEM`
+* トリガー: 任意のユーザーのログオン時
+* 遅延: 1分
+* 繰り返し: 1時間
+* 期間: 無期限
+* ネットワーク接続が利用可能な場合に実行
+
+プログラム:
 
 ```text
-172.30.255.2
-172.30.255.3
-172.30.255.4
-...
+powershell.exe
 ```
 
-中央サーバーでは各 Peer に `/32` を割り当てます。
-
-```ini
-[Peer]
-PublicKey = ...
-AllowedIPs = 172.30.255.2/32
-Endpoint = 203.0.113.10:51820
-```
-
-## 動作の流れ
+引数:
 
 ```text
-1. クライアント起動
-        |
-        v
-2. Beacon サーバーへ HTTPS POST
-        |
-        v
-3. REMOTE_ADDR からグローバル IP を取得
-        |
-        v
-4. wg-beacon.json の endpoint を更新
-        |
-        v
-5. wg-create-config.php を実行
-        |
-        v
-6. WireGuard 設定ファイル生成
-        |
-        v
-7. WireGuard に設定を反映
+-file "C:\ProgramData\WGBeacon\wg-beacon.ps1"
 ```
 
-## セキュリティ上の注意
+開始:
 
-このプログラムでは API キー、WireGuard 公開鍵、Endpoint、WireGuard 秘密鍵などを扱います。
-
-特に以下に注意してください。
-
-* `YOUR_SECRET_API_KEY` は必ず変更してください。
-* `YOUR_WG_PRIVATE_KEY` は絶対に GitHub へ登録しないでください。
-* 実際に使用している API キーを GitHub へ登録しないでください。
-* 実際の `wg-beacon.json` を GitHub へ登録しないことを推奨します。
-* Beacon 通信には HTTPS を使用してください。
-* クライアントの `curl -k` はサーバー証明書を検証しないため、本番環境では可能な限り使用しないでください。
-* WireGuard 用 UDP ポートは必要な範囲だけファイアウォールで許可してください。
-* `wg-create-config.php` は WireGuard 秘密鍵を扱うため、一般ユーザーや Web 経由から実行・閲覧できない場所へ配置してください。
-
-## `.gitignore` 例
-
-秘密情報や実データを誤って GitHub へ登録しないため、例えば以下を `.gitignore` に追加してください。
-
-```gitignore
-data/
-*.log
-*.conf
-.env
+```text
+C:\ProgramData\WGBeacon
 ```
 
-必要に応じて実際の環境に合わせて変更してください。
+スクリプトファイルは一般ユーザーから変更できない場所へ配置し、一般ユーザーには書き込み権限を与えないでください。
+
 
 ## 注意
 
-このプログラムは簡易的な WireGuard Endpoint 管理を目的としています。
+このツールは特定の WireGuard 構成を簡単に管理することを目的としたものです。
 
-Beacon によって取得できるのは HTTPS 接続時の送信元 IP アドレスです。WireGuard の UDP ポートについては、ルーター側で固定のポートフォワードを設定しておくことを前提としています。
+使用するネットワークアドレス、インターフェース名、ファイルパス、Web サーバーの実行ユーザーなどは環境に合わせて変更してください。
 
-NAT、CGNAT、MAP-E などのネットワーク構成によっては、外部から任意の UDP ポートへ接続できない場合があります。
+またAllowIPsの複数ネットワーク設定には対応しておりません。
+
+
