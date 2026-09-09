@@ -18,7 +18,7 @@
 
 # 設定 -------------------------------------------------
 $wg = "C:\Program Files\WireGuard\wg.exe"
-$pubkey = "子側のPUBLIC_KEY"
+$pubkey = "中央サーバーのPUBLIC_KEY"
 $net = "wg0(トンネル名)"
 $endpoint = "endpoint.jp:51820(中央サーバー)"
 $logFile = "C:\ProgramData\WGBeacon\wg-beacon.log(ログファイル)"
